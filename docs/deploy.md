@@ -2,6 +2,7 @@
 
 ## 密钥与配置（仓库开源）
 
+- **仓库根即项目根**：克隆后无嵌套目录，`cd pisc` 即为项目根。
 - **仓库里只保留占位符**：`wrangler.toml` 中不写真实 Account ID、database_id，方便开源。
 - **配置与密钥只在 Cloudflare**：在 CF 控制台关联 GitHub 后，环境变量和 Secret 都在 **CF Dashboard** 里填写，无需下载代码到本机、无需改仓库里的文件。
 

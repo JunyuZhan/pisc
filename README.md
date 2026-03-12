@@ -34,6 +34,8 @@ Test: Vitest + Miniflare
 
 **部署方式**：推荐在 [Cloudflare Dashboard](https://dash.cloudflare.com) → Workers & Pages → **Connect to Git** 关联本仓库，在 CF 控制台填写环境变量与 Secret、绑定 R2/D1/Vectorize/Queue 后即可自动部署，**无需下载到本机**。详见 [docs/deploy.md](docs/deploy.md)。
 
+本仓库**根目录即项目根**，克隆后 `cd pisc` 即为项目目录，无嵌套。
+
 若需在本地开发或本机部署：
 
 ```bash
