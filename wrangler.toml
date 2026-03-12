@@ -52,9 +52,55 @@ database_id = "<YOUR_D1_DATABASE_ID>"
 binding = "VECTORIZE"
 index_name = "photo-index"
 
-# 多环境：使用 wrangler deploy --env <env>；绑定继承顶层，仅覆盖 vars 或需区分的 id
+# 多环境：Wrangler 4 的 env 不继承顶层，需在此重复 vars 与 bindings（构建时注入会替换占位符）
 [env.staging]
-vars = { ENVIRONMENT = "staging" }
+vars = { ENVIRONMENT = "staging", R2_ACCOUNT_ID = "<YOUR_CF_ACCOUNT_ID>", R2_BUCKET_NAME = "pisc-images" }
+[env.staging.ai]
+binding = "AI"
+[[env.staging.queues.producers]]
+queue = "image-upload-queue"
+binding = "UPLOAD_QUEUE"
+[[env.staging.queues.consumers]]
+queue = "image-upload-queue"
+max_batch_size = 1
+max_batch_timeout = 30
+max_concurrency = 5
+[[env.staging.durable_objects.bindings]]
+name = "IMAGE_PROCESSING_DO"
+class_name = "ImageProcessingDO"
+[[env.staging.r2_buckets]]
+binding = "BUCKET"
+bucket_name = "pisc-images"
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "pis-metadata"
+database_id = "<YOUR_D1_DATABASE_ID>"
+[[env.staging.vectorize]]
+binding = "VECTORIZE"
+index_name = "photo-index"
 
 [env.production]
-vars = { ENVIRONMENT = "production" }
+vars = { ENVIRONMENT = "production", R2_ACCOUNT_ID = "<YOUR_CF_ACCOUNT_ID>", R2_BUCKET_NAME = "pisc-images" }
+[env.production.ai]
+binding = "AI"
+[[env.production.queues.producers]]
+queue = "image-upload-queue"
+binding = "UPLOAD_QUEUE"
+[[env.production.queues.consumers]]
+queue = "image-upload-queue"
+max_batch_size = 1
+max_batch_timeout = 30
+max_concurrency = 5
+[[env.production.durable_objects.bindings]]
+name = "IMAGE_PROCESSING_DO"
+class_name = "ImageProcessingDO"
+[[env.production.r2_buckets]]
+binding = "BUCKET"
+bucket_name = "pisc-images"
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "pis-metadata"
+database_id = "<YOUR_D1_DATABASE_ID>"
+[[env.production.vectorize]]
+binding = "VECTORIZE"
+index_name = "photo-index"
