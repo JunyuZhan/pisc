@@ -55,7 +55,9 @@ binding = "VECTORIZE"
 index_name = "photo-index"
 
 # 多环境：Wrangler 4 的 env 不继承顶层，需在此重复 vars 与 bindings（构建时注入会替换占位符）
+# name = "pisc" 使 CF 关联 Git 部署时名称一致，避免 bot 提示 "Update name in Wrangler configuration"
 [env.staging]
+name = "pisc"
 vars = { ENVIRONMENT = "staging", R2_ACCOUNT_ID = "4fa7198a8cd94d9b781d0254722353c6", R2_BUCKET_NAME = "pisc-images" }
 [env.staging.ai]
 binding = "AI"
@@ -82,6 +84,7 @@ binding = "VECTORIZE"
 index_name = "photo-index"
 
 [env.production]
+name = "pisc"
 vars = { ENVIRONMENT = "production", R2_ACCOUNT_ID = "4fa7198a8cd94d9b781d0254722353c6", R2_BUCKET_NAME = "pisc-images" }
 [env.production.ai]
 binding = "AI"
