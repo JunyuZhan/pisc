@@ -32,7 +32,7 @@
 - **Build 环境变量**（同一项目的 Build / Environment variables，用于构建时注入，**不是** Worker 运行时的 vars）必填：
   | 变量名 | 说明 |
   |--------|------|
-  | `D1_DATABASE_ID` | D1 数据库 ID（如 `30d22a93-39cb-4a44-8e2c-b86df6e212ac`） |
+  | `D1_DATABASE_ID` | D1 数据库 ID（UUID，在 CF 控制台 D1 中查看） |
   | `R2_ACCOUNT_ID` | 用于 R2 的 Account ID（如 R2 API 域名前缀或 CF 账号 ID） |
   | `WRANGLER_ENV` | 可选。要部署的环境，如 `production` 或 `staging`，不填则用默认环境 |
 

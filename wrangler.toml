@@ -10,7 +10,7 @@ compatibility_date = "2025-01-01"
 ENVIRONMENT = "development"
 # R2 预签名用：请在 Cloudflare 控制台创建 R2 桶后，填入你的 Account ID 与桶名（勿提交真实密钥）
 # 本地开发：复制 .dev.vars.example 为 .dev.vars 并填入 R2_ACCESS_KEY_ID、R2_SECRET_ACCESS_KEY
-R2_ACCOUNT_ID = "4fa7198a8cd94d9b781d0254722353c6"
+R2_ACCOUNT_ID = "<YOUR_CF_ACCOUNT_ID>"
 R2_BUCKET_NAME = "pisc-images"
 
 # Workers AI 绑定（阶段 4，B 工程师使用）
@@ -47,7 +47,7 @@ bucket_name = "pisc-images"
 [[d1_databases]]
 binding = "DB"
 database_name = "pis-metadata"
-database_id = "30d22a93-39cb-4a44-8e2c-b86df6e212ac"
+database_id = "<YOUR_D1_DATABASE_ID>"
 
 # Vectorize 向量索引绑定（阶段 6，工程师 C）
 [[vectorize]]
@@ -58,7 +58,7 @@ index_name = "photo-index"
 # name = "pisc" 使 CF 关联 Git 部署时名称一致，避免 bot 提示 "Update name in Wrangler configuration"
 [env.staging]
 name = "pisc"
-vars = { ENVIRONMENT = "staging", R2_ACCOUNT_ID = "4fa7198a8cd94d9b781d0254722353c6", R2_BUCKET_NAME = "pisc-images" }
+vars = { ENVIRONMENT = "staging", R2_ACCOUNT_ID = "<YOUR_CF_ACCOUNT_ID>", R2_BUCKET_NAME = "pisc-images" }
 [env.staging.ai]
 binding = "AI"
 [[env.staging.queues.producers]]
@@ -78,14 +78,14 @@ bucket_name = "pisc-images"
 [[env.staging.d1_databases]]
 binding = "DB"
 database_name = "pis-metadata"
-database_id = "30d22a93-39cb-4a44-8e2c-b86df6e212ac"
+database_id = "<YOUR_D1_DATABASE_ID>"
 [[env.staging.vectorize]]
 binding = "VECTORIZE"
 index_name = "photo-index"
 
 [env.production]
 name = "pisc"
-vars = { ENVIRONMENT = "production", R2_ACCOUNT_ID = "4fa7198a8cd94d9b781d0254722353c6", R2_BUCKET_NAME = "pisc-images" }
+vars = { ENVIRONMENT = "production", R2_ACCOUNT_ID = "<YOUR_CF_ACCOUNT_ID>", R2_BUCKET_NAME = "pisc-images" }
 [env.production.ai]
 binding = "AI"
 [[env.production.queues.producers]]
@@ -105,7 +105,7 @@ bucket_name = "pisc-images"
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "pis-metadata"
-database_id = "30d22a93-39cb-4a44-8e2c-b86df6e212ac"
+database_id = "<YOUR_D1_DATABASE_ID>"
 [[env.production.vectorize]]
 binding = "VECTORIZE"
 index_name = "photo-index"

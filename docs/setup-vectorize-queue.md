@@ -67,7 +67,7 @@ npx wrangler vectorize create photo-index --dimensions=768 --metric=cosine
 
 ### 方式 B：R2 事件发到 Worker Webhook
 
-若未配置 Queue 目标，可把事件目标设为 **Worker**，URL 填你的 Worker 地址 + `/r2-webhook`（如 `https://pisc.zhanyongcheng.workers.dev/r2-webhook`）。Worker 收到 POST 后解析 body 并入队，效果与方式 A 类似，多一层 Worker 转发。
+若未配置 Queue 目标，可把事件目标设为 **Worker**，URL 填你的 Worker 地址 + `/r2-webhook`（如 `https://pisc.<你的子域>.workers.dev/r2-webhook`）。Worker 收到 POST 后解析 body 并入队，效果与方式 A 类似，多一层 Worker 转发。
 
 - 事件 payload 格式需与 `handlers/r2-webhook.ts` 中解析的 `bucket`、`object.key` 一致；若 R2 控制台提供的格式不同，需在 Webhook 里做一次转换再 `queue.send()`。
 

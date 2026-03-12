@@ -61,6 +61,8 @@ npx wrangler dev
 
 📚 关键文档
 
+- **[使用与对接](docs/usage.md)**：如何调用 API、SDK 用法、前端对接示例
+- [API 参考](docs/api-reference.md)
 - [架构设计](ARCHITECTURE.md)
 - [开发任务清单](docs/tasklist.md)
 - [贡献指南](CONTRIBUTING.md)

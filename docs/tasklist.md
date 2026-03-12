@@ -90,7 +90,7 @@
 | 优先级 | 做什么 | 负责人 | 说明 |
 |--------|--------|--------|------|
 | **P0** | **跑通一次完整链路** | 全员 | ✅ 已完成：本地 `npm run dev` + `upload-demo.mjs` + `POST /internal/trigger-processing` 已跑通；R2/D1/Vectorize/Queue 已配置。 |
-| **P1** | **阶段 9.1 部署与 secret** | A 或运维 | ✅ 已完成：CF 关联 GitHub，部署命令 `bash scripts/inject-and-deploy.sh`，构建环境变量 D1_DATABASE_ID/R2_ACCOUNT_ID；生产 D1 迁移已执行；Worker 已上线 https://pisc.zhanyongcheng.workers.dev。本机部署见 `docs/deploy.md`。 |
+| **P1** | **阶段 9.1 部署与 secret** | A 或运维 | ✅ 已完成：CF 关联 GitHub，部署命令 `bash scripts/inject-and-deploy.sh`，构建环境变量 D1_DATABASE_ID/R2_ACCOUNT_ID；生产 D1 迁移已执行；Worker 已上线（域名为 `pisc.<你的子域>.workers.dev`，以控制台为准）。本机部署见 `docs/deploy.md`。 |
 | **P2** | **阶段 8.3 集成测试** | 任一人 | ✅ 已添加 `test/pipeline.integration.test.ts`：internal trigger 入队 + status 查询。 |
 | **P3** | **阶段 9.2 日志与监控** | A 或运维 | ✅ 已完成：`src/utils/logger.ts` 结构化日志，上传/webhook/队列/DO 打点；9.3 告警与 9.4 成本优化已写文档。 |
 | **可选** | 阶段 3.4 死信队列、指数退避 | A | 提高可靠性；可在首次上线后迭代。 |
@@ -336,7 +336,7 @@
 - [x] 使用 `wrangler deploy --env` 部署 Worker（`npm run deploy:staging` / `deploy:production`）
 - [x] 执行 D1 迁移（见 `docs/deploy.md` 与 `scripts/deploy.sh`）
 - [x] 环境变量与 Secret 说明（见 `docs/deploy.md`、`.dev.vars.example`；生产需执行 `wrangler secret put`）
-- [x] **CF 关联 GitHub 部署**：部署命令 `bash scripts/inject-and-deploy.sh`，构建环境变量 `D1_DATABASE_ID`、`R2_ACCOUNT_ID`（可选 `WRANGLER_ENV`）；生产 D1 迁移已执行；Worker 已上线 https://pisc.zhanyongcheng.workers.dev
+- [x] **CF 关联 GitHub 部署**：部署命令 `bash scripts/inject-and-deploy.sh`，构建环境变量 `D1_DATABASE_ID`、`R2_ACCOUNT_ID`（可选 `WRANGLER_ENV`）；生产 D1 迁移已执行；Worker 已上线（域名以 CF 控制台为准）
 
 ### 9.2 日志与监控
 - [x] 在 Worker 中添加结构化日志（`src/utils/logger.ts` 单行 JSON；上传、webhook、队列消费、404 等打点，见 `handlers/`）
