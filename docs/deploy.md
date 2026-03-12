@@ -196,8 +196,27 @@ npm run deploy:staging
 - **生产必配鉴权**：设置 `AUTH_SECRET`（`wrangler secret put AUTH_SECRET`），避免 `POST /api/upload/request` 等接口被匿名刷量吃光额度。
 - **用量告警**：Billing → Usage 定期查看；Notifications 中为用量/账单设通知，异常时先收到邮件。
 - **密钥勿泄露**：API Key、Bearer、R2 密钥仅放在 CF Secrets 或本地 `.dev.vars`，不提交仓库、不贴到公开渠道。
-- **上传限流（可选）**：可在 Cloudflare 控制台为该 Worker 或域名配置 **Rate Limiting**（或 WAF 规则），限制 `POST /api/upload/request` 的请求频率（如每 IP 每分钟 N 次），防止单点刷量。
+- **上传限流（可选）**：见下方「配置上传限流」。
 - 详见 `docs/tasklist.md` 末尾「是否安全、会不会一夜破产？」。
+
+### 配置上传限流（可选）
+
+限制 `POST /api/upload/request` 的请求频率，防止单 IP/用户刷量。
+
+**方式 A：自定义域名 + WAF Rate Limiting**
+
+若 Worker 已通过 **Custom Domains** 绑到自己的域名（如 `api.example.com`），在该域名的 **Security → WAF → Rate limiting rules** 中：
+
+1. **Create rule**（创建规则）。
+2. **Expression**：选 **URI Path**，运算符 **equals**，值填 `/api/upload/request`（或 **contains** `/api/upload/request`）。
+3. **Rate limit**：例如 **10 requests per 60 seconds**，**Characteristics** 选 **IP**。
+4. **Action**：**Block** 或 **Challenge**；**Duration** 如 60 秒。
+5. 保存后，同一 IP 在 60 秒内超过 10 次上传请求会被拦截。
+
+**方式 B：仅 workers.dev 或未绑域名**
+
+- 使用 **Workers Rate Limiting** 绑定（需 Wrangler 4.36+）：在 `wrangler.toml` 配置 `[rate_limits]`，在 Worker 里对 `POST /api/upload/request` 调用 `env.XXX.limit({ key: 用户/IP })`，超出返回 429。详见 [Cloudflare Workers Rate Limiting](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/)。
+- 或后续在代码内用 **Durable Object** 按 IP/用户计数，超过 N 次/分钟返回 429。
 
 ## 成本优化（阶段 9.4）
 
