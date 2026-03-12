@@ -110,18 +110,18 @@ export class PISClient {
   }
 
   /**
-   * 获取照片详情
+   * 获取照片详情（解包 API 的 { success, data } 为 { photo }）
    */
   async getPhoto(photoId: string): Promise<{ photo: Photo }> {
-    return this.request<{ photo: Photo }>(`/api/photos/${photoId}`);
+    const res = await this.request<{ success: boolean; data: Photo }>(`/api/photos/${photoId}`);
+    return { photo: res.data! };
   }
 
   /**
-   * 获取照片列表
+   * 获取照片列表（解包 API 的 { success, data, meta } 为 SearchResult）
    */
   async listPhotos(options: SearchOptions = {}): Promise<SearchResult> {
     const params = new URLSearchParams();
-    
     if (options.userId) params.set("userId", options.userId);
     if (options.tags) params.set("tags", options.tags.join(","));
     if (options.from) params.set("from", String(options.from));
@@ -132,11 +132,18 @@ export class PISClient {
     if (options.order) params.set("order", options.order);
 
     const query = params.toString();
-    return this.request<SearchResult>(`/api/photos${query ? `?${query}` : ""}`);
+    const res = await this.request<{ success: boolean; data: Photo[]; meta?: { total: number; hasMore: boolean } }>(
+      `/api/photos${query ? `?${query}` : ""}`
+    );
+    return {
+      photos: res.data ?? [],
+      total: res.meta?.total ?? 0,
+      hasMore: res.meta?.hasMore ?? false,
+    };
   }
 
   /**
-   * 语义搜索照片
+   * 语义搜索照片（解包 API 的 { success, data, meta } 为 SearchResult）
    */
   async searchPhotos(
     query: string,
@@ -149,30 +156,39 @@ export class PISClient {
     } = {}
   ): Promise<SearchResult> {
     const params = new URLSearchParams({ q: query });
-    
     if (options.userId) params.set("userId", options.userId);
     if (options.tags) params.set("tags", options.tags.join(","));
     if (options.from) params.set("from", String(options.from));
     if (options.to) params.set("to", String(options.to));
     if (options.limit) params.set("limit", String(options.limit));
 
-    return this.request<SearchResult>(`/api/photos/search?${params}`);
+    const res = await this.request<{ success: boolean; data: Photo[]; meta?: { total: number; hasMore: boolean } }>(
+      `/api/photos/search?${params}`
+    );
+    return {
+      photos: res.data ?? [],
+      total: res.meta?.total ?? 0,
+      hasMore: res.meta?.hasMore ?? false,
+    };
   }
 
   /**
-   * 获取照片处理状态
+   * 获取照片处理状态（解包 API 的 { success, data }）
    */
   async getPhotoStatus(photoId: string): Promise<PhotoStatus> {
-    return this.request<PhotoStatus>(`/api/photos/${photoId}/status`);
+    const res = await this.request<{ success: boolean; data: PhotoStatus }>(`/api/photos/${photoId}/status`);
+    return res.data!;
   }
 
   /**
-   * 删除照片
+   * 删除照片（解包 API 的 { success, data }）
    */
-  async deletePhoto(photoId: string): Promise<{ success: boolean; photoId: string }> {
-    return this.request<{ success: boolean; photoId: string }>(`/api/photos/${photoId}`, {
-      method: "DELETE",
-    });
+  async deletePhoto(photoId: string): Promise<{ photoId: string; deleted: boolean }> {
+    const res = await this.request<{ success: boolean; data: { photoId: string; deleted: boolean } }>(
+      `/api/photos/${photoId}`,
+      { method: "DELETE" }
+    );
+    return res.data!;
   }
 }
 

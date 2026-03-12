@@ -144,3 +144,5 @@ async function searchPhotos(q: string) {
 - **上传限制**：预签名 URL 有效期约 5 分钟；大文件可考虑分片上传（当前为单次 PUT，可选功能见 tasklist）。
 
 更多部署与配置见 [deploy.md](deploy.md)，API 细节见 [api-reference.md](api-reference.md)。
+
+**API 与 SDK 约定**：除 `POST /api/upload/request` 外，其余接口均返回 `{ success, data, meta? }`；本仓库 SDK 已做解包，示例中的 `listPhotos` / `getPhoto` / `searchPhotos` / `getPhotoStatus` / `deletePhoto` 返回值与上文一致。

@@ -20,17 +20,18 @@ PIS (Photo Intelligence System) 提供了一套完整的 RESTful API，用于照
 
 **请求体**: 无
 
-**响应**:
+**成功响应**（200，注意：本接口不包在 `success`/`data` 中，直接返回）:
 ```json
 {
-  "success": true,
-  "data": {
-    "uploadUrl": "https://<account-id>.r2.cloudflarestorage.com/<bucket>/<key>?X-Amz-...",
-    "publicId": "01HXYZ123456789",
-    "expiresAt": 1704067200
-  }
+  "uploadUrl": "https://<account-id>.r2.cloudflarestorage.com/<bucket>/<key>?X-Amz-...",
+  "publicId": "01HXYZ123456789",
+  "expiresAt": 1704067200
 }
 ```
+
+**错误响应**（本接口 401/500 使用简单格式）:
+- 401: `{ "error": "Unauthorized" }`
+- 500: `{ "error": "Server misconfiguration: R2 credentials not set" }` 或 `{ "error": "Failed to generate upload URL", "detail": "..." }`
 
 **使用示例**:
 ```bash
@@ -308,10 +309,10 @@ curl "https://your-worker.workers.dev/api/photos/search?q=outdoor&tags=nature,la
 ### 上传并搜索照片
 
 ```bash
-# 1. 获取预签名 URL
+# 1. 获取预签名 URL（响应为 { uploadUrl, publicId, expiresAt }，无 success/data 包装）
 RESPONSE=$(curl -s -X POST https://your-worker.workers.dev/api/upload/request)
-UPLOAD_URL=$(echo $RESPONSE | jq -r '.data.uploadUrl')
-PHOTO_ID=$(echo $RESPONSE | jq -r '.data.publicId')
+UPLOAD_URL=$(echo $RESPONSE | jq -r '.uploadUrl')
+PHOTO_ID=$(echo $RESPONSE | jq -r '.publicId')
 
 # 2. 上传照片
 curl -X PUT "$UPLOAD_URL" \
@@ -414,8 +415,8 @@ class PISClient {
 // 使用示例
 const client = new PISClient('https://your-worker.workers.dev');
 
-// 上传照片
-const { data: { uploadUrl, publicId } } = await client.requestUpload();
+// 上传照片（/api/upload/request 返回 { uploadUrl, publicId, expiresAt }，无 data 包装）
+const { uploadUrl, publicId } = await client.requestUpload();
 await client.uploadFile(uploadUrl, file);
 
 // 搜索照片
