@@ -1,24 +1,78 @@
 # Pisc 部署说明（阶段 9）
 
-## 密钥放在哪里（重要）
+## 密钥与配置（仓库开源）
 
-- **GitHub 仓库只放开源代码，不放任何密钥。**
-- **所有密钥只存在 Cloudflare**：在你自己的电脑上执行 `wrangler secret put ...`，密钥会保存到 Cloudflare 账号下，供已部署的 Worker 运行时使用。代码库里、GitHub 上都不会出现这些值。
-- **wrangler.toml** 里只写「可公开的配置」（如 Account ID、桶名、database_id 占位符）；真正的密钥（R2_ACCESS_KEY_ID、R2_SECRET_ACCESS_KEY、AUTH_SECRET）一律用 `wrangler secret put` 配置在 Cloudflare，不写进任何文件。
+- **仓库里只保留占位符**：`wrangler.toml` 中不写真实 Account ID、database_id，方便开源。
+- **配置与密钥只在 Cloudflare**：在 CF 控制台关联 GitHub 后，环境变量和 Secret 都在 **CF Dashboard** 里填写，无需下载代码到本机、无需改仓库里的文件。
 
 ---
 
-## 如何部署（推荐：本机部署，密钥只在 CF）
+## 推荐：在 CF 控制台关联 GitHub，构建时注入后部署（无需本机）
 
-按下面顺序在你自己的电脑上执行即可完成部署（以 **staging** 为例）。
+不下载到本地也可以部署：在 Cloudflare 控制台连接 GitHub 仓库，用**构建时注入**把 `database_id`、`R2_ACCOUNT_ID` 等写入配置后再执行 deploy，仓库内保持占位符。
 
-### 1. 填写 wrangler.toml
+### 1. 在 CF 控制台连接 GitHub
 
-在项目根目录打开 `wrangler.toml`，将占位符替换为你自己的 Cloudflare 资源：
+1. 打开 [Cloudflare Dashboard](https://dash.cloudflare.com) → **Workers & Pages**。
+2. 点击 **Create application** → **Connect to Git**（或 **Create Worker** → 从 Git 导入）。
+3. 选择 **GitHub**，授权并选择仓库 **JunyuZhan/pisc**（或你的 fork）。
+4. **Production branch**：`main`。**Root directory**：留空。
 
-- `R2_ACCOUNT_ID` → 你的 [Cloudflare Account ID](https://dash.cloudflare.com → 右侧栏)
-- `R2_BUCKET_NAME` → 你的 R2 桶名（如 `pisc-images`）
-- `database_id`（D1）→ 你的 D1 数据库 ID（在控制台创建 D1 后可见）
+### 2. 构建时注入：部署命令与构建环境变量
+
+因 `wrangler.toml` 不支持从环境变量读 `database_id`，需在**构建阶段**用脚本注入后再 deploy：
+
+- **Deploy command**（构建配置里的「部署命令」）改为：
+  ```bash
+  bash scripts/inject-and-deploy.sh
+  ```
+  若默认是 `npx wrangler deploy`，替换成上面这一行。
+
+- **Build 环境变量**（同一项目的 Build / Environment variables，用于构建时注入，**不是** Worker 运行时的 vars）必填：
+  | 变量名 | 说明 |
+  |--------|------|
+  | `D1_DATABASE_ID` | D1 数据库 ID（如 `30d22a93-39cb-4a44-8e2c-b86df6e212ac`） |
+  | `R2_ACCOUNT_ID` | 用于 R2 的 Account ID（如 R2 API 域名前缀或 CF 账号 ID） |
+  | `WRANGLER_ENV` | 可选。要部署的环境，如 `production` 或 `staging`，不填则用默认环境 |
+
+脚本会把这些值替换进 `wrangler.toml` 的占位符后再执行 `wrangler deploy`，仓库内无需提交真实 ID。
+
+### 3. Worker 运行时：Variables and Secrets / Bindings
+
+在 **Workers & Pages** → 选中该 Worker → **Settings**：
+
+- **Variables and Secrets**：  
+  - **Environment variables**（运行时）：`ENVIRONMENT`、`R2_ACCOUNT_ID`、`R2_BUCKET_NAME` 等（若已在 inject 脚本里写进 toml，部分可省略，按需配置）。  
+  - **Secrets**：`R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY`，可选 `AUTH_SECRET`。
+- **Bindings**：R2、D1、Vectorize、Queues、Durable Objects、AI 等与 `wrangler.toml` 一致（通常由 toml 决定，无需在控制台再绑一遍，除非你只用 Dashboard 绑）。
+
+这样，**构建时注入**负责把 D1/R2 的 ID 写进配置，密钥与运行时变量只在 CF 控制台填写，不写进仓库。
+
+### 4. D1 迁移（首次或 schema 变更时）
+
+若使用 Git 关联部署，**第一次**建好 D1 后，需要在 CF 执行一次 D1 迁移。可以任选其一：
+
+- **在 CF 控制台**：D1 → 选中数据库 → **Migrations**，按提示上传或执行 `migrations/0001_create_photos.sql` 中的 SQL。  
+- **或在本机执行一次**：`npx wrangler d1 migrations apply pis-metadata --remote`（只需执行一次，之后推送代码即可由 CF 自动部署 Worker）。
+
+### 5. 之后怎么更新
+
+代码推送到 GitHub 的 `main` 后，若已连接 Git，Cloudflare 会自动重新构建并部署，无需在本机跑 `wrangler deploy`。
+
+---
+
+## 备选：本机用 Wrangler 部署
+
+若你希望用本机命令行部署（或 CF 控制台暂未提供 Git 连接时），可按下面步骤操作。
+
+### 1. 本地填写 wrangler.toml（仅本机，不提交）
+
+仓库里的 `wrangler.toml` 使用占位符，**不会也不应**包含你的真实 Account ID、database_id。  
+部署时请**只在你本机**克隆的项目里修改这一份配置，用来告诉 Wrangler 要绑定哪些 CF 资源：
+
+- 打开本机项目根目录下的 `wrangler.toml`
+- 将 `R2_ACCOUNT_ID`、`R2_BUCKET_NAME`、`database_id` 等占位符改成你在 CF 创建的资源 ID
+- **不要把这些修改提交到 Git / 推送到仓库**（仅用于你本机部署）
 
 若尚未创建 R2、D1、Vectorize、Queue，请先按 [docs/setup-vectorize-queue.md](setup-vectorize-queue.md) 在 Cloudflare 控制台或命令行创建。
 
@@ -69,9 +123,9 @@ npm run deploy:staging
 
 ## 前置条件（检查清单）
 
-- 已在 Cloudflare 创建：R2 桶、D1 数据库（名称与 `wrangler.toml` 中 `database_name` 一致）、Vectorize 索引（`photo-index`）、Queue（`image-upload-queue`）
-- `wrangler.toml` 中已填写真实的 `R2_ACCOUNT_ID`、`R2_BUCKET_NAME`、`database_id`（非占位符）
-- 已通过 `wrangler secret put` 配置当前环境的 R2 密钥
+- 已在 Cloudflare 创建：R2 桶、D1 数据库（名称与 `wrangler.toml` 中 `database_name` 一致）、Vectorize 索引（`photo-index`）、Queue（`image-upload-queue`）。
+- **用 CF 关联 GitHub 部署**：在 Worker 的 **Settings → Variables and Secrets / Bindings** 里填写 `R2_ACCOUNT_ID`、`R2_BUCKET_NAME`、D1/Vectorize/Queue 绑定及 R2 等 Secret。
+- **用本机 Wrangler 部署**：在本机 `wrangler.toml` 中填写真实 ID，并用 `wrangler secret put` 配置 R2 密钥。
 
 ## 所需 Secret / 环境变量
 
@@ -118,11 +172,11 @@ npm run deploy:staging
 
 ---
 
-## 从 GitHub 自动部署（可选，不用也可以）
+## 从 GitHub 自动部署（可选）
 
-若你**不希望**在 GitHub 存任何密钥，可以**不用**下面的方式，只用在上面「如何部署」里说的本机 `./scripts/deploy.sh` 部署即可。代码照常推送到 GitHub 做开源，部署在你本机执行，密钥全部只在 Cloudflare。
+**更推荐**：用上文「在 CF 控制台关联 GitHub」方式，密钥和配置全在 CF 填，push 后由 CF 自动构建部署，无需在 GitHub 存密钥。
 
-若你**希望** push 到 GitHub 后自动部署，可以使用仓库里的 [.github/workflows/deploy.yml](../.github/workflows/deploy.yml)。这时需要在 GitHub 仓库 **Settings → Secrets and variables → Actions** 里配置一个 **CLOUDFLARE_API_TOKEN**：这是用来让 GitHub 的机器有权限调用 Cloudflare 的「部署接口」的，**不是**你应用里的 R2 或业务密钥；R2 等密钥仍然只在 Cloudflare 用 `wrangler secret put` 配置，不会进 GitHub。配置好该 Token 后，推送到 `main` 会触发 D1 迁移 + Worker 部署。**若你不想在 GitHub 存任何东西，请忽略本节，只用本机部署。**
+若你希望用 **GitHub Actions** 触发部署，需在 GitHub 仓库 **Settings → Secrets and variables → Actions** 里配置 **CLOUDFLARE_API_TOKEN**（用于调用 CF 部署接口，不是应用业务密钥）。可使用仓库里的 [.github/workflows/deploy.yml](../.github/workflows/deploy.yml)，推送到 `main` 会触发 D1 迁移 + Worker 部署。若不想在 GitHub 存任何密钥，请用「CF 控制台关联 GitHub」或本机 `./scripts/deploy.sh` 部署。
 
 ## 监控与告警（阶段 9.2 / 9.3）
 

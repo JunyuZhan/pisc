@@ -32,6 +32,10 @@ Test: Vitest + Miniflare
 
 🏁 快速开始
 
+**部署方式**：推荐在 [Cloudflare Dashboard](https://dash.cloudflare.com) → Workers & Pages → **Connect to Git** 关联本仓库，在 CF 控制台填写环境变量与 Secret、绑定 R2/D1/Vectorize/Queue 后即可自动部署，**无需下载到本机**。详见 [docs/deploy.md](docs/deploy.md)。
+
+若需在本地开发或本机部署：
+
 ```bash
 # 1. 克隆项目
 git clone https://github.com/JunyuZhan/pisc.git
