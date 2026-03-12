@@ -82,6 +82,7 @@ binding = "VECTORIZE"
 index_name = "photo-index"
 
 [env.production]
+name = "pisc"
 vars = { ENVIRONMENT = "production", R2_ACCOUNT_ID = "4fa7198a8cd94d9b781d0254722353c6", R2_BUCKET_NAME = "pisc-images" }
 [env.production.ai]
 binding = "AI"
