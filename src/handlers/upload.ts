@@ -1,33 +1,22 @@
 import { createPhotoId } from "../utils/id.js";
 import { createPresignedPutUrl } from "../services/presign.js";
 import { log, logError } from "../utils/logger.js";
+import { authenticateUser } from "../utils/auth.js";
 
 const UPLOAD_PREFIX = "uploads"; // R2 key 前缀，便于与后续事件过滤配合
 
 /**
- * 验证请求身份（初期简化：API Key 或 Bearer）
- * 未配置 AUTH_SECRET 时跳过校验（仅限开发）
- */
-function authorize(request: Request, env: Env): boolean {
-  const secret = env.AUTH_SECRET;
-  if (!secret) return true;
-  const auth = request.headers.get("Authorization");
-  if (!auth) return false;
-  if (auth.startsWith("Bearer ")) return auth.slice(7) === secret;
-  if (auth.startsWith("ApiKey ")) return auth.slice(7) === secret;
-  return false;
-}
-
-/**
  * POST /api/upload/request
  * 返回 { uploadUrl, publicId, expiresAt }，客户端据此直传 R2
+ * 鉴权与 photos 等 API 统一使用 utils/auth.ts
  */
 export async function handleUploadRequest(request: Request, env: Env): Promise<Response> {
   if (request.method !== "POST") {
     return new Response("Method Not Allowed", { status: 405 });
   }
 
-  if (!authorize(request, env)) {
+  const authContext = await authenticateUser(request, env);
+  if (!authContext.authenticated) {
     log("upload_request", { status: 401, reason: "unauthorized" });
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,

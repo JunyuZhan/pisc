@@ -13,7 +13,10 @@ describe("Worker", () => {
   it("POST /r2-webhook without UPLOAD_QUEUE returns 503", async () => {
     const res = await SELF.fetch("http://localhost/r2-webhook", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "X-Webhook-Secret": "test-webhook-secret",
+      },
       body: JSON.stringify({ bucket: "b", object: { key: "k" } }),
     });
     expect(res.status).toBe(503);

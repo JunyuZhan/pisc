@@ -5,6 +5,8 @@ interface Env {
   ENVIRONMENT?: string;
   /** 可选：API Key / Bearer 鉴权，未设置时开发环境不校验 */
   AUTH_SECRET?: string;
+  /** 可选：R2 Webhook 校验，若设置则要求请求头 X-Webhook-Secret 与之一致，否则 401 */
+  WEBHOOK_SECRET?: string;
   /** R2 预签名用：S3 API 凭证（secret） */
   R2_ACCESS_KEY_ID?: string;
   R2_SECRET_ACCESS_KEY?: string;

@@ -1,5 +1,7 @@
 /**
- * 身份认证与授权中间件
+ * 身份认证与授权中间件（兼容层）
+ * @deprecated 新代码请使用 src/utils/auth.ts（authenticateUser、authorizeResourceAccess）。
+ * 本模块保留以兼容可能的外部引用；与 utils/auth 行为一致后，可逐步迁移并移除。
  * @see docs/tasklist.md 阶段 7.2
  */
 

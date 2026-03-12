@@ -44,7 +44,7 @@
 
 - **Variables and Secrets**：  
   - **Environment variables**（运行时）：`ENVIRONMENT`、`R2_ACCOUNT_ID`、`R2_BUCKET_NAME` 等（若已在 inject 脚本里写进 toml，部分可省略，按需配置）。  
-  - **Secrets**：`R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY`，可选 `AUTH_SECRET`。
+  - **Secrets**：`R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY`，可选 `AUTH_SECRET`；若 R2 事件走 Worker 的 `POST /r2-webhook`，建议设置 `WEBHOOK_SECRET`，请求时带 `X-Webhook-Secret` 与之一致，否则 401。
 - **Bindings**：R2、D1、Vectorize、Queues、Durable Objects、AI 等与 `wrangler.toml` 一致（通常由 toml 决定，无需在控制台再绑一遍，除非你只用 Dashboard 绑）。
 
 这样，**构建时注入**负责把 D1/R2 的 ID 写进配置，密钥与运行时变量只在 CF 控制台填写，不写进仓库。
@@ -95,7 +95,8 @@ npx wrangler secret put R2_SECRET_ACCESS_KEY --env staging
 ```
 
 按提示输入在 R2 → Manage R2 API Tokens 中创建的 Access Key ID 与 Secret Access Key。  
-若需上传/API 鉴权，可再执行：`npx wrangler secret put AUTH_SECRET --env staging`。
+若需上传/API 鉴权，可再执行：`npx wrangler secret put AUTH_SECRET --env staging`。  
+若 R2 事件通过 Worker 的 `/r2-webhook` 入队，建议：`npx wrangler secret put WEBHOOK_SECRET --env staging`，调用时请求头带 `X-Webhook-Secret` 与之一致。
 
 部署到 **production** 时，将上述命令中的 `--env staging` 改为 `--env production`。
 
@@ -137,6 +138,7 @@ npm run deploy:staging
 | `R2_ACCESS_KEY_ID` | R2 API 访问密钥 ID（预签名上传用） | `npx wrangler secret put R2_ACCESS_KEY_ID --env staging` |
 | `R2_SECRET_ACCESS_KEY` | R2 API 机密密钥 | `npx wrangler secret put R2_SECRET_ACCESS_KEY --env staging` |
 | `AUTH_SECRET` | 可选。上传/API 鉴权用 Bearer 或 ApiKey | `npx wrangler secret put AUTH_SECRET --env staging` |
+| `WEBHOOK_SECRET` | 可选。R2 事件走 `/r2-webhook` 时，请求头 `X-Webhook-Secret` 须与此一致 | `npx wrangler secret put WEBHOOK_SECRET --env staging` |
 
 非 Secret 的变量（如 `R2_ACCOUNT_ID`、`R2_BUCKET_NAME`、`ENVIRONMENT`）在 `wrangler.toml` 的 `[vars]` 或 `[env.<name>.vars]` 中配置；多环境时在 `[env.staging]`、`[env.production]` 下覆盖 `vars` 与绑定（如 `database_id`）即可。
 
@@ -185,6 +187,8 @@ npm run deploy:staging
 - **查看日志**：Cloudflare Dashboard → Workers & Pages → 选择 Worker → **Logs**（Real-time Logs / Tail）可查看实时输出；按 `event=upload_request`、`event=queue_batch`、`event=do_pipeline` 等过滤。
 - **Metrics**：同上 → **Metrics** 查看请求数、错误率。
 - **Queues**：Queues 控制台查看队列积压与消费情况。
+- **可观测增强（可选）**：可接入 [Tail Workers](https://developers.cloudflare.com/workers/observability/tail-workers/) 将日志转发到第三方；或在前端/Worker 内集成 [Sentry](https://docs.sentry.io/platforms/javascript/guides/cloudflare-workers/) 等做错误与性能追踪。
+- **依赖安全**：上线前或定期执行 `npm audit`，按提示修复高危依赖；CI 中可加入 `npm audit --audit-level=high` 阻断合并。
 - **告警（9.3）**：在 CF Dashboard → **Notifications**（或 Account → Notifications）中可创建告警，例如：
   - Worker 错误率超过阈值（需先在该 Worker 的 Metrics 中查看是否有对应指标）
   - 账户用量告警（R2、D1、Workers 请求等）在 **Billing** → **Usage** 或 **Notifications** 中配置

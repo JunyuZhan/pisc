@@ -8,6 +8,7 @@ import { createVectorizeService } from "../services/vectorize.js";
 import { createAIService } from "../services/ai.js";
 import { successResponse, Errors, paginatedResponse } from "../utils/response.js";
 import { authenticateUser, authorizeResourceAccess } from "../utils/auth.js";
+import { parseLimit, parseOffset } from "../utils/pagination.js";
 
 /**
  * GET /api/photos/:id - 获取单张照片详情
@@ -69,10 +70,10 @@ export async function handleListPhotos(
   const options: SearchOptions = {
     userId,
     tags: params.get("tags")?.split(",").filter(Boolean) ?? undefined,
-    from: params.get("from") ? parseInt(params.get("from")!) : undefined,
-    to: params.get("to") ? parseInt(params.get("to")!) : undefined,
-    limit: params.get("limit") ? parseInt(params.get("limit")!) : 20,
-    offset: params.get("offset") ? parseInt(params.get("offset")!) : 0,
+    from: params.get("from") ? parseInt(params.get("from")!, 10) : undefined,
+    to: params.get("to") ? parseInt(params.get("to")!, 10) : undefined,
+    limit: parseLimit(params.get("limit")),
+    offset: parseOffset(params.get("offset")),
     orderBy: (params.get("orderBy") as "created_at" | "updated_at") ?? "created_at",
     order: (params.get("order") as "ASC" | "DESC") ?? "DESC",
   };
@@ -103,11 +104,15 @@ export async function handleSearchPhotos(
     return Errors.badRequest("Query parameter 'q' is required");
   }
 
-  const userId = params.get("userId") ?? undefined;
+  const authContext = await authenticateUser(request, env);
+  let userId = params.get("userId") ?? undefined;
+  if (authContext.authenticated && authContext.user) {
+    userId = authContext.user.id;
+  }
   const tags = params.get("tags")?.split(",").filter(Boolean) ?? undefined;
-  const from = params.get("from") ? parseInt(params.get("from")!) : undefined;
-  const to = params.get("to") ? parseInt(params.get("to")!) : undefined;
-  const limit = params.get("limit") ? parseInt(params.get("limit")!) : 20;
+  const from = params.get("from") ? parseInt(params.get("from")!, 10) : undefined;
+  const to = params.get("to") ? parseInt(params.get("to")!, 10) : undefined;
+  const limit = parseLimit(params.get("limit"));
 
   // 1. 将查询文本转换为向量
   const aiService = createAIService(env);
@@ -203,10 +208,11 @@ export async function handleDeletePhoto(
     return Errors.serviceUnavailable("Database, Vectorize, or R2");
   }
 
-  // 认证用户
   const authContext = await authenticateUser(request, env);
+  if (!authContext.authenticated || !authContext.user) {
+    return Errors.unauthorized("Authentication required to delete a photo");
+  }
 
-  // 1. 获取照片信息
   const db = createDatabaseService(env.DB);
   const photo = await db.getPhotoById(photoId);
 
@@ -214,11 +220,8 @@ export async function handleDeletePhoto(
     return Errors.notFound("Photo");
   }
 
-  // 授权检查：用户只能删除自己的照片
-  if (authContext.authenticated && authContext.user) {
-    if (!authorizeResourceAccess(authContext.user, photo.user_id)) {
-      return Errors.forbidden("You don't have permission to delete this photo");
-    }
+  if (!authorizeResourceAccess(authContext.user, photo.user_id)) {
+    return Errors.forbidden("You don't have permission to delete this photo");
   }
 
   // 2. 删除 R2 对象

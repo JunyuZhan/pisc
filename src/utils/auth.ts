@@ -38,15 +38,21 @@ export async function authenticateUser(
     };
   }
 
-  // 支持 Bearer Token (JWT)
+  // 支持 Bearer Token（简单共享密钥或 JWT）
   if (authHeader.startsWith("Bearer ")) {
     const token = authHeader.substring(7);
+    if (token === env.AUTH_SECRET) {
+      return { user: { id: "api-user" }, authenticated: true };
+    }
     return await verifyJWT(token, env.AUTH_SECRET);
   }
 
-  // 支持 API Key
+  // 支持 API Key（简单共享密钥或 userId:signature）
   if (authHeader.startsWith("ApiKey ")) {
     const apiKey = authHeader.substring(7);
+    if (apiKey === env.AUTH_SECRET) {
+      return { user: { id: "api-user" }, authenticated: true };
+    }
     return await verifyApiKey(apiKey, env.AUTH_SECRET);
   }
 

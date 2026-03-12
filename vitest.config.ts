@@ -13,6 +13,7 @@ export default defineWorkersConfig({
             R2_BUCKET_NAME: "test-bucket",
             R2_ACCESS_KEY_ID: "test-access-key",
             R2_SECRET_ACCESS_KEY: "test-secret-key",
+            WEBHOOK_SECRET: "test-webhook-secret",
           },
         },
       },

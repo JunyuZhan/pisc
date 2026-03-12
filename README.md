@@ -34,6 +34,8 @@ Test: Vitest + Miniflare
 
 **部署方式**：推荐在 [Cloudflare Dashboard](https://dash.cloudflare.com) → Workers & Pages → **Connect to Git** 关联本仓库，在 CF 控制台填写环境变量与 Secret、绑定 R2/D1/Vectorize/Queue 后即可自动部署，**无需下载到本机**。详见 [docs/deploy.md](docs/deploy.md)。
 
+**⚠️ 开源仓库 + 自动部署**：本仓库为开源项目；一旦在 CF 中关联了 GitHub，**推送到所配置分支（如 `main`）会触发自动部署**。所有密钥与敏感配置（`AUTH_SECRET`、R2 API 凭证等）**仅**在 Cloudflare 控制台的 Variables and Secrets 中配置，切勿写入代码或提交到仓库。
+
 本仓库**根目录即项目根**，克隆后 `cd pisc` 即为项目目录，无嵌套。
 
 若需在本地开发或本机部署：
@@ -79,8 +81,8 @@ npx wrangler dev
 
 🔒 开源与安全
 
-- **勿将密钥提交到仓库**：`.dev.vars`、真实 `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` 仅用于本地或通过 `wrangler secret put` 配置，已列入 `.gitignore`。
-- **wrangler.toml**：仓库内使用占位符（如 `<YOUR_CF_ACCOUNT_ID>`、`<YOUR_D1_DATABASE_ID>`），克隆后请替换为你自己的 Cloudflare 资源 ID。
+- **勿将密钥提交到仓库**：`.dev.vars`、真实 `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` 仅用于本地或通过 `wrangler secret put` 配置，已列入 `.gitignore`。**已接入 CF Git 自动部署时**，密钥与 Secret 只在 **CF Dashboard → Worker → Variables and Secrets** 中配置，代码库中不包含任何秘密。
+- **wrangler.toml**：仓库内使用占位符（如 `<YOUR_CF_ACCOUNT_ID>`、`<YOUR_D1_DATABASE_ID>`），克隆后请替换为你自己的 Cloudflare 资源 ID；CF 关联 Git 部署时可在控制台覆盖构建用变量。
 
 ⚖️ 开源协议
 

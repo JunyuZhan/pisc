@@ -1,5 +1,5 @@
-import { SELF, env } from "cloudflare:test";
-import { describe, it, expect, beforeAll } from "vitest";
+import { SELF } from "cloudflare:test";
+import { describe, it, expect } from "vitest";
 
 describe("Photo API", () => {
   describe("GET /api/photos", () => {
@@ -47,6 +47,48 @@ describe("Photo API", () => {
         method: "DELETE",
       });
       expect([404, 500]).toContain(res.status);
+    });
+
+    it("should return 401 when deleting without authentication", async () => {
+      const res = await SELF.fetch("http://localhost/api/photos/some-id", {
+        method: "DELETE",
+      });
+      expect([401, 500]).toContain(res.status);
+    });
+  });
+
+  describe("POST /r2-webhook", () => {
+    it("should return 401 when WEBHOOK_SECRET is set and X-Webhook-Secret is missing", async () => {
+      const res = await SELF.fetch("http://localhost/r2-webhook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bucket: "b", object: { key: "k" } }),
+      });
+      expect(res.status).toBe(401);
+    });
+
+    it("should return 401 when WEBHOOK_SECRET is set and X-Webhook-Secret is wrong", async () => {
+      const res = await SELF.fetch("http://localhost/r2-webhook", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Webhook-Secret": "wrong-secret",
+        },
+        body: JSON.stringify({ bucket: "b", object: { key: "k" } }),
+      });
+      expect(res.status).toBe(401);
+    });
+
+    it("should accept when X-Webhook-Secret matches WEBHOOK_SECRET", async () => {
+      const res = await SELF.fetch("http://localhost/r2-webhook", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Webhook-Secret": "test-webhook-secret",
+        },
+        body: JSON.stringify({ bucket: "b", object: { key: "k" } }),
+      });
+      expect([202, 503]).toContain(res.status);
     });
   });
 });

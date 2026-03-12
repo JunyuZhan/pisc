@@ -27,6 +27,7 @@ Fork 本仓库 到你的 GitHub 账号。
 3. 开发规范与分支 (Development Norms)
 - **日常开发请在 `development` 分支进行**，不要直接在 `main` 上提交。
 - 仅在测试通过、运行稳定且维护者确认后再将 `development` 合并到 `main`。
+- **部署说明**：本仓库若已在 Cloudflare 中关联 GitHub，则**推送到所配置分支（如 `main`）会触发自动部署**。合并前请确认改动无敏感信息、通过测试且符合安全与兼容性要求。
 - 首次参与开发时：克隆后执行 `git checkout -b development`（若尚无该分支则创建并推送）。
 - 开发任务顺序以 [docs/tasklist.md](docs/tasklist.md) 为准，从阶段 1 开始。
 - **多人同一目录协作**：三人共用同一仓库、同一物理目录可行；分工、目录边界与分支约定见 tasklist 中「协同开发与任务分配」→「同一物理目录 / 同一仓库协同」。

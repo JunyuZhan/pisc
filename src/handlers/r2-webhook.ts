@@ -7,16 +7,28 @@
 import type { R2EventPayload, UploadQueueMessage } from "../types/pipeline.js";
 import { log } from "../utils/logger.js";
 
+const JSON_HEADERS = { "Content-Type": "application/json" };
+
 export async function handleR2Webhook(request: Request, env: Env): Promise<Response> {
   if (request.method !== "POST") {
     return new Response("Method Not Allowed", { status: 405 });
+  }
+
+  if (env.WEBHOOK_SECRET) {
+    const provided = request.headers.get("X-Webhook-Secret");
+    if (provided !== env.WEBHOOK_SECRET) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: JSON_HEADERS }
+      );
+    }
   }
 
   const queue = env.UPLOAD_QUEUE;
   if (!queue) {
     return new Response(
       JSON.stringify({ error: "UPLOAD_QUEUE not configured" }),
-      { status: 503, headers: { "Content-Type": "application/json" } }
+      { status: 503, headers: JSON_HEADERS }
     );
   }
 
@@ -26,7 +38,7 @@ export async function handleR2Webhook(request: Request, env: Env): Promise<Respo
   } catch {
     return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
       status: 400,
-      headers: { "Content-Type": "application/json" },
+      headers: JSON_HEADERS,
     });
   }
 
@@ -35,7 +47,7 @@ export async function handleR2Webhook(request: Request, env: Env): Promise<Respo
   if (!bucket || !key) {
     return new Response(
       JSON.stringify({ error: "Missing bucket or object.key" }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
+      { status: 400, headers: JSON_HEADERS }
     );
   }
 
