@@ -1,0 +1,40 @@
+# IDE / local
+.arts/
+.codeartsdoer/
+
+# Dependencies
+node_modules/
+
+# Wrangler / Cloudflare
+.wrangler/
+.dev.vars
+*.dev.vars
+
+# Build & output
+dist/
+.output/
+
+# Env and secrets
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs and temp
+*.log
+.tmp/
+tmp/
+temp/
+
+# Test
+coverage/
+.nyc_output/

@@ -1,0 +1,13 @@
+# 复制为 .dev.vars 并填入本地/测试用敏感变量（不提交到仓库）
+# cp .dev.vars.example .dev.vars
+
+# 阶段 2：预签名上传（R2 S3 API Token，在 Cloudflare Dashboard R2 → Manage R2 API Tokens 创建）
+# R2_ACCESS_KEY_ID=
+# R2_SECRET_ACCESS_KEY=
+
+# 可选：上传接口鉴权，不设置则开发环境不校验
+# AUTH_SECRET=
+
+# 可选：外部 AI API（阶段 4 备选方案）
+# OPENAI_API_KEY=
+# REPLICATE_API_TOKEN=

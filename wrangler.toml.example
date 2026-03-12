@@ -1,0 +1,52 @@
+# 复制为 wrangler.toml 并填入你的资源 ID
+# cp wrangler.toml.example wrangler.toml
+
+name = "pisc"
+main = "src/worker/index.ts"
+compatibility_date = "2025-01-01"
+
+[vars]
+ENVIRONMENT = "development"
+# 预签名 URL 用（S3 API），需在 Dashboard 创建 R2 API Token 后填入
+# R2_ACCOUNT_ID = "<你的 Cloudflare Account ID>"
+# R2_BUCKET_NAME = "pis-images-dev"
+# R2_ACCESS_KEY_ID、R2_SECRET_ACCESS_KEY 用 wrangler secret put 设置，勿写在此文件
+
+# R2 绑定（Pipeline 读对象用，阶段 3 使用）
+# [[r2_buckets]]
+# binding = "BUCKET"
+# bucket_name = "pis-images-dev"
+
+# D1（创建后填入 database_id）
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "pis-metadata"
+# database_id = "<your-d1-database-id>"
+
+# Vectorize（创建后填入 index_id）
+# [[vectorize]]
+# binding = "VECTORIZE"
+# index_name = "photo-index"
+# index_id = "<your-vectorize-index-id>"
+
+# Queue 生产者（R2 事件写入队列）
+# [[queues.producers]]
+# queue = "image-upload-queue"
+# binding = "UPLOAD_QUEUE"
+
+# Queue 消费者（同一 Worker 消费）
+# [[queues.consumers]]
+# queue = "image-upload-queue"
+# max_batch_size = 1
+# max_batch_timeout = 30
+
+# Workers AI（阶段 4 使用）
+# [ai]
+# binding = "AI"
+
+# 环境示例
+# [env.staging]
+# vars = { ENVIRONMENT = "staging" }
+# [[env.staging.r2_buckets]]
+# binding = "BUCKET"
+# bucket_name = "pis-images-staging"

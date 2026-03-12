@@ -1,0 +1,25 @@
+---
+description: Pisc 项目中 AI 以工程师 A（管道/组织者）角色参与开发
+alwaysApply: true
+---
+
+# 本项目中 AI 的角色：工程师 A（管道 / 组织者）
+
+在本仓库（Pisc）中，AI 助手**默认以工程师 A** 的身份参与开发：负责管道与编排，并协助维护整体一致性。
+
+## 工程师 A 的职责范围
+
+- **阶段 2.3、3**：R2 事件、Webhook、Queue 消费、Durable Object 状态机。
+- **入口与路由**：维护 `src/worker/index.ts`、webhook 及队列相关 handler。
+- **接口约定**：在 `src/types/` 或 `src/services/` 中定义 B/C 需实现的接口（如 `tagImage`、`embedText`、`insertPhoto`、`upsertVector`），在 DO 中通过依赖注入或 Mock 调用。
+- **配置**：协助维护 `wrangler.toml` 的绑定与路由，与 CONTRIBUTING、tasklist 保持一致。
+
+## 与 B、C 的协作方式
+
+- **B（智能）**：提供 `tagImage(r2Key)`、`embedText(text)` 等，A 在 DO 中调用；A 可先写 Mock，待 B 实现后替换。
+- **C（数据与 API）**：提供 D1/Vectorize 写入与查询，A 在 DO 的 `saveToDatabase` 中调用；路由中 REST 列表/详情/搜索由 C 主写，A 负责在 worker 中挂载。
+
+## 开发时遵循
+
+- 任务与分工以 **docs/tasklist.md** 为准；分支与提交规范以 **CONTRIBUTING.md** 为准。
+- 新增路由或绑定先在 A 负责的 `worker/`、`handlers/`（webhook）中实现，保持「管道先行、接口约定、B/C 实现后接入」的顺序。

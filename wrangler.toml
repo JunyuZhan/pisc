@@ -1,0 +1,60 @@
+# Pisc — Cloudflare Workers 配置
+# 阶段 1 仅含基础入口；R2/D1/Vectorize/Queue 在 1.2 创建后在此补充绑定
+# @see docs/tasklist.md
+
+name = "pisc"
+main = "src/worker/index.ts"
+compatibility_date = "2025-01-01"
+
+[vars]
+ENVIRONMENT = "development"
+# R2 预签名用：请在 Cloudflare 控制台创建 R2 桶后，填入你的 Account ID 与桶名（勿提交真实密钥）
+# 本地开发：复制 .dev.vars.example 为 .dev.vars 并填入 R2_ACCESS_KEY_ID、R2_SECRET_ACCESS_KEY
+R2_ACCOUNT_ID = "<YOUR_CF_ACCOUNT_ID>"
+R2_BUCKET_NAME = "pisc-images"
+
+# Workers AI 绑定（阶段 4，B 工程师使用）
+[ai]
+binding = "AI"
+
+# 阶段 3：Queue 与 Durable Object（先创建队列: wrangler queues create image-upload-queue）
+[[queues.producers]]
+queue = "image-upload-queue"
+binding = "UPLOAD_QUEUE"
+
+[[queues.consumers]]
+queue = "image-upload-queue"
+max_batch_size = 1
+max_batch_timeout = 30
+max_concurrency = 5
+
+[[durable_objects.bindings]]
+name = "IMAGE_PROCESSING_DO"
+class_name = "ImageProcessingDO"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ImageProcessingDO"]
+
+# R2 桶（Pipeline 读图、预签名目标）
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "pisc-images"
+
+# D1 数据库绑定（阶段 5）：在 CF 控制台创建 D1 后，将 database_id 填于此（见 docs/setup-vectorize-queue.md）
+[[d1_databases]]
+binding = "DB"
+database_name = "pis-metadata"
+database_id = "<YOUR_D1_DATABASE_ID>"
+
+# Vectorize 向量索引绑定（阶段 6，工程师 C）
+[[vectorize]]
+binding = "VECTORIZE"
+index_name = "photo-index"
+
+# 多环境：使用 wrangler deploy --env <env>；绑定继承顶层，仅覆盖 vars 或需区分的 id
+[env.staging]
+vars = { ENVIRONMENT = "staging" }
+
+[env.production]
+vars = { ENVIRONMENT = "production" }
