@@ -7,6 +7,7 @@
 
 import { DurableObject } from "cloudflare:workers";
 import type { UploadQueueMessage } from "../types/pipeline.js";
+import { log, logError } from "../utils/logger.js";
 import { mockImageTagger, mockEmbeddingService, mockPhotoRepository, mockVectorStore } from "../services/mocks.js";
 import { createAIService } from "../services/ai.js";
 import { createDatabaseService } from "../services/database.js";
@@ -132,10 +133,11 @@ export class ImageProcessingDO extends DurableObject {
     }
 
     await this.ctx.storage.put(STORAGE_KEYS.STATUS, "completed");
+    log("do_pipeline", { key, status: "completed" });
   }
 
   private async handleFailure(bucket: string, key: string, steps: Record<StepName, StepState>): Promise<void> {
-    console.error(`ImageProcessingDO: Processing failed for ${bucket}/${key}`, steps);
+    logError("do_pipeline", new Error("Processing failed"), { key, bucket, status: "failed", steps: JSON.stringify(steps) });
   }
 
   private initialSteps(): Record<StepName, StepState> {

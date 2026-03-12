@@ -181,9 +181,31 @@ npm run deploy:staging
 
 ## 监控与告警（阶段 9.2 / 9.3）
 
-- 在 Cloudflare Dashboard → Workers & Pages → 选择 Worker → Metrics 查看请求数、错误率
-- 在 Queues 控制台查看队列积压与消费情况
-- 可配置告警：Worker 错误率 > 1%、队列积压超过阈值等
+- **结构化日志**：Worker 内对上传、webhook、队列消费、DO 处理结果、404 等打点（单行 JSON，见 `src/utils/logger.ts`）。字段含 `event`、`ts`，便于过滤。
+- **查看日志**：Cloudflare Dashboard → Workers & Pages → 选择 Worker → **Logs**（Real-time Logs / Tail）可查看实时输出；按 `event=upload_request`、`event=queue_batch`、`event=do_pipeline` 等过滤。
+- **Metrics**：同上 → **Metrics** 查看请求数、错误率。
+- **Queues**：Queues 控制台查看队列积压与消费情况。
+- **告警（9.3）**：在 CF Dashboard → **Notifications**（或 Account → Notifications）中可创建告警，例如：
+  - Worker 错误率超过阈值（需先在该 Worker 的 Metrics 中查看是否有对应指标）
+  - 账户用量告警（R2、D1、Workers 请求等）在 **Billing** → **Usage** 或 **Notifications** 中配置
+  - 队列积压可结合 Queues 控制台与自定义 Worker 健康检查实现
+
+## 成本与安全：避免意外账单
+
+- **免费计划**：在免费额度内使用、不升级付费，费用为 0；超出后通常需你确认才计费，不会默默扣一大笔。
+- **生产必配鉴权**：设置 `AUTH_SECRET`（`wrangler secret put AUTH_SECRET`），避免 `POST /api/upload/request` 等接口被匿名刷量吃光额度。
+- **用量告警**：Billing → Usage 定期查看；Notifications 中为用量/账单设通知，异常时先收到邮件。
+- **密钥勿泄露**：API Key、Bearer、R2 密钥仅放在 CF Secrets 或本地 `.dev.vars`，不提交仓库、不贴到公开渠道。
+- **上传限流（可选）**：可在 Cloudflare 控制台为该 Worker 或域名配置 **Rate Limiting**（或 WAF 规则），限制 `POST /api/upload/request` 的请求频率（如每 IP 每分钟 N 次），防止单点刷量。
+- 详见 `docs/tasklist.md` 末尾「是否安全、会不会一夜破产？」。
+
+## 成本优化（阶段 9.4）
+
+- **R2**：Dashboard → R2 → 桶 → Settings 可设生命周期（如 30 天后转冷存储）；关注 Class A/B 请求量与存储 GB。
+- **Workers AI**：免费额度约 1 万 Neurons/天；在 Dashboard 查看用量，按需限流或选用更轻量模型。
+- **Vectorize**：免费额度内注意存储向量数与查询量；可对热门搜索做应用层缓存减少查询。
+- **Queues**：免费约 1 万次操作/天；控制入队频率与批量大小。
+- **D1**：免费 5 GB/账号；元数据表通常较小，定期看 Billing → Usage 即可。
 
 ## 内部测试端点
 

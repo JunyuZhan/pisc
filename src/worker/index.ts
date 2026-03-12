@@ -3,6 +3,7 @@
  * @see docs/tasklist.md
  */
 
+import { log } from "../utils/logger.js";
 import { handleUploadRequest } from "../handlers/upload.js";
 import { handleR2Webhook } from "../handlers/r2-webhook.js";
 import { handleInternalTrigger } from "../handlers/internal.js";
@@ -68,6 +69,7 @@ export default {
       if (method === "DELETE") return handleDeletePhoto(request, env, photoId);
     }
 
+    log("request", { path: url.pathname, method, status: 404 });
     return new Response("Not Found", { status: 404 });
   },
 

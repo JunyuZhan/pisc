@@ -1,5 +1,6 @@
 import { createPhotoId } from "../utils/id.js";
 import { createPresignedPutUrl } from "../services/presign.js";
+import { log, logError } from "../utils/logger.js";
 
 const UPLOAD_PREFIX = "uploads"; // R2 key 前缀，便于与后续事件过滤配合
 
@@ -27,6 +28,7 @@ export async function handleUploadRequest(request: Request, env: Env): Promise<R
   }
 
   if (!authorize(request, env)) {
+    log("upload_request", { status: 401, reason: "unauthorized" });
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
@@ -39,6 +41,7 @@ export async function handleUploadRequest(request: Request, env: Env): Promise<R
   const secretAccessKey = env.R2_SECRET_ACCESS_KEY;
 
   if (!r2AccountId || !r2BucketName || !accessKeyId || !secretAccessKey) {
+    log("upload_request", { status: 500, reason: "r2_not_configured" });
     return new Response(
       JSON.stringify({ error: "Server misconfiguration: R2 credentials not set" }),
       { status: 500, headers: { "Content-Type": "application/json" } }
@@ -59,6 +62,7 @@ export async function handleUploadRequest(request: Request, env: Env): Promise<R
       key
     );
 
+    log("upload_request", { status: 200, publicId, key });
     return new Response(
       JSON.stringify({
         uploadUrl: url,
@@ -71,6 +75,7 @@ export async function handleUploadRequest(request: Request, env: Env): Promise<R
       }
     );
   } catch (e) {
+    logError("upload_request", e, { status: 500 });
     return new Response(
       JSON.stringify({ error: "Failed to generate upload URL", detail: String(e) }),
       { status: 500, headers: { "Content-Type": "application/json" } }

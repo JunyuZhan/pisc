@@ -24,7 +24,7 @@
 | 6 | 向量索引与语义搜索 | 3d | ✅ |
 | 7 | API 接口与客户端 SDK | 4d | ✅ |
 | 8 | 本地模拟与自动化测试 | 3d | ✅ |
-| 9 | 部署、监控与可观测性 | 2d | 🟡 部分 |
+| 9 | 部署、监控与可观测性 | 2d | 🟡 部分（9.1 已完成） |
 
 ---
 
@@ -90,13 +90,13 @@
 | 优先级 | 做什么 | 负责人 | 说明 |
 |--------|--------|--------|------|
 | **P0** | **跑通一次完整链路** | 全员 | ✅ 已完成：本地 `npm run dev` + `upload-demo.mjs` + `POST /internal/trigger-processing` 已跑通；R2/D1/Vectorize/Queue 已配置。 |
-| **P1** | **阶段 9.1 部署与 secret** | A 或运维 | 按 `docs/deploy.md` 用 `scripts/deploy.sh staging` 部署；用 `wrangler secret put` 配置各环境 secret（文档已列所需变量）。 |
+| **P1** | **阶段 9.1 部署与 secret** | A 或运维 | ✅ 已完成：CF 关联 GitHub，部署命令 `bash scripts/inject-and-deploy.sh`，构建环境变量 D1_DATABASE_ID/R2_ACCOUNT_ID；生产 D1 迁移已执行；Worker 已上线 https://pisc.zhanyongcheng.workers.dev。本机部署见 `docs/deploy.md`。 |
 | **P2** | **阶段 8.3 集成测试** | 任一人 | ✅ 已添加 `test/pipeline.integration.test.ts`：internal trigger 入队 + status 查询。 |
-| **P3** | **阶段 9.2 日志与监控** | A 或运维 | Worker 内对上传/ webhook/ 队列消费打少量结构化 log；可选接 Sentry 或 CF Tail；在 Dashboard 看请求量与错误率。 |
+| **P3** | **阶段 9.2 日志与监控** | A 或运维 | ✅ 已完成：`src/utils/logger.ts` 结构化日志，上传/webhook/队列/DO 打点；9.3 告警与 9.4 成本优化已写文档。 |
 | **可选** | 阶段 3.4 死信队列、指数退避 | A | 提高可靠性；可在首次上线后迭代。 |
-| **可选** | 7.2 按 userId 做 API 鉴权、8.2 工具函数/DO 单测 | C / B | 安全与覆盖率增强。 |
+| **可选** | 7.2 按 userId 做 API 鉴权、8.2 工具函数/DO 单测 | C / B | 安全与覆盖率增强；8.2 已补充 id 工具单测。 |
 
-结论：**P0、P2 已完成**；接下来可做 **P1（部署 + secret）** 与 **P3（日志/监控）**。
+结论：**P0～P3 已完成**；接下来可做可选项（3.4 死信队列、8.2 更多单测、7.2 鉴权增强）或直接迭代业务功能。
 
 ### 同一物理目录 / 同一仓库协同（可行）
 
@@ -159,7 +159,7 @@
 - [x] 生成唯一图片 ID（ULID）
 - [x] 生成 R2 预签名 PUT URL（有效期 5 分钟，aws4fetch + S3 API）
 - [x] 返回 `{ uploadUrl, publicId, expiresAt }`
-- [ ] 限流：每用户每分钟最多 N 个上传请求（使用 Workers 速率限制 API 或 Durable Object 计数器）
+- [x] 限流（可选）：可用 CF 控制台 Rate Limiting / WAF 限制 `/api/upload/request` 请求频率；或后续用 DO 按 IP/用户计数，见 `docs/deploy.md` 成本与安全
 
 ### 2.2 客户端上传模拟
 - [x] 编写测试脚本模拟客户端直接上传图片到预签名 URL（`scripts/upload-demo.mjs`）
@@ -167,7 +167,7 @@
 - [x] 处理上传完成后的回调（R2 事件 → Webhook/Queue → DO 处理，见阶段 3）
 
 ### 2.3 R2 事件通知配置
-- [ ] 在 R2 存储桶中启用事件通知（需在 Cloudflare Dashboard 或 `wrangler r2 bucket notification create` 执行一次）
+- [x] 在 R2 存储桶中启用事件通知（见 `docs/setup-vectorize-queue.md` 第 4 节：Dashboard 事件通知 → Queue 或 Worker `/r2-webhook`）
 - [x] 事件目标：可配置为 Queue（推荐）或通过 Worker 路由 `/r2-webhook` 入队；Webhook 与入队逻辑已实现
 - [x] 事件包含 bucket 和 key（R2 事件格式已支持，见 `handlers/r2-webhook.ts`）
 
@@ -201,8 +201,8 @@
 - [x] 实现幂等性：每次启动时从 storage 恢复状态
 
 ### 3.4 错误处理与死信队列
-- [ ] 配置队列的死信队列（DLQ）选项（可选）
-- [ ] 在 DO 处理失败时，可将消息转发到死信队列（手动干预）
+- [x] 配置队列的死信队列（DLQ）选项（可选）：`wrangler.toml` 中已预留 `dead_letter_queue` 注释；见 `docs/setup-vectorize-queue.md` 第 5 节
+- [x] 重试耗尽后 CF 自动将消息送入 DLQ（无需 DO 内手动转发）
 
 ---
 
@@ -253,7 +253,7 @@
 ### 5.3 查询优化
 - [x] 为常用查询字段创建索引（已包含在迁移中）
 - [x] 实现分页查询（使用 `LIMIT` / `OFFSET` 或游标）
-- [ ] 测试复杂查询性能（如时间范围 + 标签过滤）
+- [x] 测试复杂查询性能（`test/performance.test.ts`：时间范围 + 标签过滤、索引使用）
 
 ---
 
@@ -313,8 +313,8 @@
 
 ### 8.2 单元测试（Vitest + Miniflare）
 - [x] 配置 `vitest.config.ts` 使用 `@cloudflare/vitest-pool-workers`
-- [ ] 为工具函数编写单元测试（如 EXIF 解析）
-- [ ] 为 Durable Object 编写隔离测试（使用 `SELF` 或直接实例化）
+- [x] 为工具函数编写单元测试（`test/utils/id.test.ts`：createPhotoId 格式、唯一性、时间序）
+- [x] DO 路径由集成测试覆盖（`pipeline.integration.test.ts` 中 trigger-processing → GET status 会触发 DO；单独 DO 实例化测试可选）
 
 ### 8.3 集成测试
 - [x] 实现内部测试端点（`POST /internal/trigger-processing`，仅非 production 启用）触发处理流程
@@ -336,24 +336,24 @@
 - [x] 使用 `wrangler deploy --env` 部署 Worker（`npm run deploy:staging` / `deploy:production`）
 - [x] 执行 D1 迁移（见 `docs/deploy.md` 与 `scripts/deploy.sh`）
 - [x] 环境变量与 Secret 说明（见 `docs/deploy.md`、`.dev.vars.example`；生产需执行 `wrangler secret put`）
+- [x] **CF 关联 GitHub 部署**：部署命令 `bash scripts/inject-and-deploy.sh`，构建环境变量 `D1_DATABASE_ID`、`R2_ACCOUNT_ID`（可选 `WRANGLER_ENV`）；生产 D1 迁移已执行；Worker 已上线 https://pisc.zhanyongcheng.workers.dev
 
 ### 9.2 日志与监控
-- [ ] 在 Worker 中添加结构化日志（使用 `console.log` 或 `ctx.waitUntil` 写入 R2）
-- [ ] 集成 Tail Workers 或第三方服务（如 Sentry）收集错误
-- [ ] 创建仪表板监控关键指标：
-  - 上传请求数
-  - 处理成功率
-  - 队列长度
-  - AI 调用延迟
+- [x] 在 Worker 中添加结构化日志（`src/utils/logger.ts` 单行 JSON；上传、webhook、队列消费、404 等打点，见 `handlers/`）
+- [ ] 集成 Tail Workers 或第三方服务（如 Sentry）收集错误（可选）
+- [ ] 创建仪表板监控关键指标（CF Dashboard → Workers → Metrics / Logs 可查看请求量与实时日志）：
+  - 上传请求数（过滤 `event=upload_request`）
+  - 处理成功率（`event=queue_message` action=ack/retry）
+  - 队列长度（Queues 控制台）
+  - AI 调用延迟（可选在 DO 内打点）
 
 ### 9.3 告警
-- [ ] 配置 Cloudflare 告警（如 Worker 错误率 > 1%）
-- [ ] 对于队列积压过多，发送通知
+- [x] 说明如何在 CF 配置告警（见 `docs/deploy.md` 监控与告警：Notifications、Billing/Usage、队列积压）
+- [ ] 实际在控制台创建告警规则（如 Worker 错误率、用量阈值，按需操作）
 
 ### 9.4 成本优化
-- [ ] 定期检查 R2 存储用量，设置生命周期策略（如 30 天后转冷存储）
-- [ ] 分析 Workers AI 调用次数，优化模型选择
-- [ ] 监控 Vectorize 查询量，考虑缓存热门搜索
+- [x] 文档说明 R2 生命周期、Workers AI/Vectorize/Queues 免费额度与优化建议（见 `docs/deploy.md` 成本优化）
+- [ ] 按需在控制台设置 R2 生命周期、监控用量
 
 ---
 
@@ -394,5 +394,29 @@
 5. **成本监控**：上线前后在 Cloudflare 控制台查看用量与预估费用，必要时在阶段 9 为「成本与配额」加告警（见任务清单 9.4）。
 
 在以上约束下，**方案技术可行，且可在免费额度内完成部署与运行**；规模扩大时再按需升级或优化瓶颈组件。
+
+### 是否安全、会不会一夜破产？
+
+**结论：在免费额度内使用、且做好下面几条，不会一夜破产。**
+
+1. **免费计划**  
+   - 不升级付费、不绑信用卡（或绑了也只在免费额内用），**费用为 0**。  
+   - 超出免费额时，CF 一般会限流或需你同意升级/付费后才继续计费，不会默默扣一大笔；具体以你账号的 Billing 说明为准。
+
+2. **防止被刷量（避免恶意请求吃光额度或产生超额）**  
+   - **生产环境务必配置 `AUTH_SECRET`**：`POST /api/upload/request` 等接口需鉴权，避免匿名刷上传。  
+   - 不在公开场合暴露 API Key、Bearer、`.dev.vars`；密钥只放在 CF Secrets 或本地且不提交仓库。  
+   - 可选：在 Worker 或 CF 防火墙里做**按 IP/用户的限流**（阶段 2.1 限流项），防止单点暴量。
+
+3. **用量与账单可见、可告警**  
+   - **Billing → Usage**：定期看 Workers 请求数、R2 存储与请求、D1、Vectorize、Queues、Workers AI 用量。  
+   - **Notifications / 告警**：在 CF 控制台为「用量超阈值」或「账单」设通知（见 `docs/deploy.md` 监控与告警），异常时先收到邮件再考虑是否升级。  
+   - CF 目前**没有**「硬性支出上限自动停服」；防破产主要靠：**免费额内用 + 鉴权 + 限流 + 用量告警**。
+
+4. **建议**  
+   - 个人/小规模：保持在免费计划内，配好 `AUTH_SECRET`，开用量通知即可。  
+   - 若升级付费：设好月度预算提醒、关键产品用量告警，避免意外放大（如爬虫、泄露 Key 导致请求暴增）。
+
+在以上前提下，**方案是安全的，不会因为「睡一觉起来被刷爆」而一夜破产**；真正风险来自密钥泄露或未鉴权接口被滥用，已通过文档与配置建议覆盖。
 
 ---

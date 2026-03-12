@@ -4,6 +4,7 @@
  */
 
 import type { R2EventPayload, UploadQueueMessage } from "../types/pipeline.js";
+import { log, logError } from "../utils/logger.js";
 
 function normalizeToBucketKey(body: unknown): { bucket: string; key: string } | null {
   if (body && typeof body === "object") {
@@ -22,13 +23,15 @@ function normalizeToBucketKey(body: unknown): { bucket: string; key: string } | 
 export async function handleQueueBatch(
   batch: MessageBatch<unknown>,
   env: Env,
-  ctx: ExecutionContext
+  _ctx: ExecutionContext
 ): Promise<void> {
   const doNamespace = env.IMAGE_PROCESSING_DO;
   if (!doNamespace) {
-    console.warn("IMAGE_PROCESSING_DO not bound, skipping queue batch");
+    log("queue_batch", { skipped: true, reason: "do_not_bound", size: batch.messages.length });
     return;
   }
+
+  log("queue_batch", { size: batch.messages.length, queue: batch.queue });
 
   for (const message of batch.messages) {
     const parsed = normalizeToBucketKey(message.body);
@@ -46,12 +49,14 @@ export async function handleQueueBatch(
         body: JSON.stringify({ bucket, key }),
       });
       if (res.ok || res.status === 202) {
+        log("queue_message", { key, action: "ack" });
         message.ack();
       } else {
+        log("queue_message", { key, action: "retry", status: res.status });
         message.retry();
       }
     } catch (e) {
-      console.error("DO process failed:", key, e);
+      logError("queue_message", e, { key, action: "retry" });
       message.retry();
     }
   }

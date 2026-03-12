@@ -53,3 +53,28 @@ npx wrangler vectorize create photo-index --dimensions=768 --metric=cosine
 - **Vectorize**：控制台 → **Workers 和 Pages** → 左侧展开 **AI** 或 **存储和数据库** → **Vectorize**，在列表里找 `photo-index`，点进去可看到 **Index ID**。
 
 把 Index ID 填进 `wrangler.toml` 的 `index_id` 后，保存即可。
+
+## 4. R2 存储桶事件通知（阶段 2.3）
+
+上传到 R2 后需要触发处理管道，有两种方式：
+
+### 方式 A：R2 事件直接投递到 Queue（推荐）
+
+1. 打开 **Cloudflare 控制台** → **R2** → 选择桶（如 `pisc-images`）→ **Settings**。
+2. 找到 **Event notifications**（事件通知）→ **Create notification**（创建通知）。
+3. 事件类型选 **Object created**（对象创建）；目标类型选 **Queue**，选择队列 `image-upload-queue`。
+4. 保存后，新对象写入该桶时会自动向队列发送消息（含 bucket、key），Worker 的 queue 消费者会收到并触发 DO 处理。
+
+### 方式 B：R2 事件发到 Worker Webhook
+
+若未配置 Queue 目标，可把事件目标设为 **Worker**，URL 填你的 Worker 地址 + `/r2-webhook`（如 `https://pisc.zhanyongcheng.workers.dev/r2-webhook`）。Worker 收到 POST 后解析 body 并入队，效果与方式 A 类似，多一层 Worker 转发。
+
+- 事件 payload 格式需与 `handlers/r2-webhook.ts` 中解析的 `bucket`、`object.key` 一致；若 R2 控制台提供的格式不同，需在 Webhook 里做一次转换再 `queue.send()`。
+
+## 5. 死信队列（阶段 3.4，可选）
+
+消费失败、重试耗尽后的消息可进入死信队列（DLQ），便于人工排查或重放：
+
+1. 在 CF 控制台或命令行再创建一个队列，例如：`image-upload-dlq`（`npx wrangler queues create image-upload-dlq`）。
+2. 在 `wrangler.toml` 的 `[[queues.consumers]]` 中取消注释并填写：`dead_letter_queue = "image-upload-dlq"`。
+3. 可选：为 DLQ 绑定另一个消费者（同一 Worker 或单独 Worker）用于打日志、告警或重试。

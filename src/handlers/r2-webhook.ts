@@ -5,6 +5,7 @@
  */
 
 import type { R2EventPayload, UploadQueueMessage } from "../types/pipeline.js";
+import { log } from "../utils/logger.js";
 
 export async function handleR2Webhook(request: Request, env: Env): Promise<Response> {
   if (request.method !== "POST") {
@@ -40,6 +41,7 @@ export async function handleR2Webhook(request: Request, env: Env): Promise<Respo
 
   const message: UploadQueueMessage = { bucket, key };
   await queue.send(message);
+  log("webhook_queued", { bucket, key });
 
   return new Response(null, { status: 202 });
 }

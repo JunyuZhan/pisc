@@ -13,9 +13,14 @@ if [ -z "${R2_ACCOUNT_ID}" ]; then
   exit 1
 fi
 
-# 替换占位符（Linux 构建环境）
-sed -i "s/<YOUR_D1_DATABASE_ID>/${D1_DATABASE_ID}/g" wrangler.toml
-sed -i "s/<YOUR_CF_ACCOUNT_ID>/${R2_ACCOUNT_ID}/g" wrangler.toml
+# 替换占位符（Linux / macOS 兼容）
+if [[ "$(uname)" == "Darwin" ]]; then
+  sed -i '' "s/<YOUR_D1_DATABASE_ID>/${D1_DATABASE_ID}/g" wrangler.toml
+  sed -i '' "s/<YOUR_CF_ACCOUNT_ID>/${R2_ACCOUNT_ID}/g" wrangler.toml
+else
+  sed -i "s/<YOUR_D1_DATABASE_ID>/${D1_DATABASE_ID}/g" wrangler.toml
+  sed -i "s/<YOUR_CF_ACCOUNT_ID>/${R2_ACCOUNT_ID}/g" wrangler.toml
+fi
 
 if [ -n "${WRANGLER_ENV}" ]; then
   npx wrangler deploy --env "${WRANGLER_ENV}"
