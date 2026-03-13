@@ -4,6 +4,7 @@
  */
 
 import { log } from "../utils/logger.js";
+import { getCorsHeaders, withCors } from "../utils/cors.js";
 import { handleUploadRequest } from "../handlers/upload.js";
 import { handleR2Webhook } from "../handlers/r2-webhook.js";
 import { handleInternalTrigger } from "../handlers/internal.js";
@@ -18,59 +19,64 @@ import {
 
 export { ImageProcessingDO } from "../durable-objects/ImageProcessingDO.js";
 
+function applyCors(response: Response, request: Request, env: Env): Response {
+  const cors = getCorsHeaders({
+    origin: env.CORS_ORIGIN,
+    requestOrigin: request.headers.get("Origin"),
+  });
+  return withCors(response, cors);
+}
+
 export default {
   async fetch(request: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const method = request.method;
 
+    // CORS 预检：对 OPTIONS 直接返回 204 + CORS 头
+    if (method === "OPTIONS") {
+      const cors = getCorsHeaders({
+        origin: env.CORS_ORIGIN,
+        requestOrigin: request.headers.get("Origin"),
+      });
+      return new Response(null, { status: 204, headers: cors });
+    }
+
+    let response: Response;
+
     // 健康检查
     if (url.pathname === "/" || url.pathname === "/health") {
-      return new Response(JSON.stringify({ ok: true, service: "pisc" }), {
+      response = new Response(JSON.stringify({ ok: true, service: "pisc" }), {
         headers: { "Content-Type": "application/json" },
       });
+    } else if (url.pathname === "/api/upload/request" && method === "POST") {
+      response = await handleUploadRequest(request, env);
+    } else if (url.pathname === "/r2-webhook") {
+      response = await handleR2Webhook(request, env);
+    } else if (url.pathname === "/internal/trigger-processing") {
+      response = await handleInternalTrigger(request, env);
+    } else if (url.pathname === "/api/photos/search" && method === "GET") {
+      response = await handleSearchPhotos(request, env);
+    } else if (url.pathname === "/api/photos" && method === "GET") {
+      response = await handleListPhotos(request, env);
+    } else {
+      const statusMatch = url.pathname.match(/^\/api\/photos\/([^/]+)\/status$/);
+      if (statusMatch && method === "GET") {
+        response = await handleGetPhotoStatus(request, env, statusMatch[1]);
+      } else {
+        const photoMatch = url.pathname.match(/^\/api\/photos\/([^/]+)$/);
+        if (photoMatch) {
+          const photoId = photoMatch[1];
+          if (method === "GET") response = await handleGetPhoto(request, env, photoId);
+          else if (method === "DELETE") response = await handleDeletePhoto(request, env, photoId);
+          else response = new Response("Not Found", { status: 404 });
+        } else {
+          log("request", { path: url.pathname, method, status: 404 });
+          response = new Response("Not Found", { status: 404 });
+        }
+      }
     }
 
-    // 上传请求
-    if (url.pathname === "/api/upload/request" && method === "POST") {
-      return handleUploadRequest(request, env);
-    }
-
-    // R2 Webhook
-    if (url.pathname === "/r2-webhook") {
-      return handleR2Webhook(request, env);
-    }
-
-    // 内部测试：触发处理流程（仅非 production，阶段 8.3）
-    if (url.pathname === "/internal/trigger-processing") {
-      return handleInternalTrigger(request, env);
-    }
-
-    // 照片搜索（必须在 /api/photos/:id 之前匹配）
-    if (url.pathname === "/api/photos/search" && method === "GET") {
-      return handleSearchPhotos(request, env);
-    }
-
-    // 照片列表
-    if (url.pathname === "/api/photos" && method === "GET") {
-      return handleListPhotos(request, env);
-    }
-
-    // 照片状态 GET /api/photos/:id/status（必须在 /api/photos/:id 之前匹配）
-    const statusMatch = url.pathname.match(/^\/api\/photos\/([^/]+)\/status$/);
-    if (statusMatch && method === "GET") {
-      return handleGetPhotoStatus(request, env, statusMatch[1]);
-    }
-
-    // 单张照片操作 GET /api/photos/:id、DELETE /api/photos/:id
-    const photoMatch = url.pathname.match(/^\/api\/photos\/([^/]+)$/);
-    if (photoMatch) {
-      const photoId = photoMatch[1];
-      if (method === "GET") return handleGetPhoto(request, env, photoId);
-      if (method === "DELETE") return handleDeletePhoto(request, env, photoId);
-    }
-
-    log("request", { path: url.pathname, method, status: 404 });
-    return new Response("Not Found", { status: 404 });
+    return applyCors(response, request, env);
   },
 
   async queue(batch: MessageBatch<unknown>, env: Env, ctx: ExecutionContext): Promise<void> {

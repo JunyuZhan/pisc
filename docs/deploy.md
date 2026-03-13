@@ -43,7 +43,7 @@
 在 **Workers & Pages** → 选中该 Worker → **Settings**：
 
 - **Variables and Secrets**：  
-  - **Environment variables**（运行时）：`ENVIRONMENT`、`R2_ACCOUNT_ID`、`R2_BUCKET_NAME` 等（若已在 inject 脚本里写进 toml，部分可省略，按需配置）。  
+  - **Environment variables**（运行时）：`ENVIRONMENT`、`R2_ACCOUNT_ID`、`R2_BUCKET_NAME` 等；若 API 会被浏览器从不同源调用，可配置 **`CORS_ORIGIN`**（调用方自己的 Origin），详见 [docs/cors.md](cors.md)。  
   - **Secrets**：`R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY`，可选 `AUTH_SECRET`；若 R2 事件走 Worker 的 `POST /r2-webhook`，建议设置 `WEBHOOK_SECRET`，请求时带 `X-Webhook-Secret` 与之一致，否则 401。
 - **Bindings**：R2、D1、Vectorize、Queues、Durable Objects、AI 等与 `wrangler.toml` 一致（通常由 toml 决定，无需在控制台再绑一遍，除非你只用 Dashboard 绑）。
 
@@ -139,6 +139,7 @@ npm run deploy:staging
 | `R2_SECRET_ACCESS_KEY` | R2 API 机密密钥 | `npx wrangler secret put R2_SECRET_ACCESS_KEY --env staging` |
 | `AUTH_SECRET` | 可选。上传/API 鉴权用 Bearer 或 ApiKey | `npx wrangler secret put AUTH_SECRET --env staging` |
 | `WEBHOOK_SECRET` | 可选。R2 事件走 `/r2-webhook` 时，请求头 `X-Webhook-Secret` 须与此一致 | `npx wrangler secret put WEBHOOK_SECRET --env staging` |
+| `CORS_ORIGIN` | 可选。API 被浏览器跨源调用时由部署者配置，填调用方 Origin；多源逗号分隔，见 [cors.md](cors.md) | 在 Dashboard Variables 或 `wrangler secret put CORS_ORIGIN` |
 
 非 Secret 的变量（如 `R2_ACCOUNT_ID`、`R2_BUCKET_NAME`、`ENVIRONMENT`）在 `wrangler.toml` 的 `[vars]` 或 `[env.<name>.vars]` 中配置；多环境时在 `[env.staging]`、`[env.production]` 下覆盖 `vars` 与绑定（如 `database_id`）即可。
 

@@ -7,6 +7,8 @@ interface Env {
   AUTH_SECRET?: string;
   /** 可选：R2 Webhook 校验，若设置则要求请求头 X-Webhook-Secret 与之一致，否则 401 */
   WEBHOOK_SECRET?: string;
+  /** 可选：CORS 允许的源，如 https://pisc-gallery.pages.dev；多个用逗号分隔；未设置则不添加 CORS 头 */
+  CORS_ORIGIN?: string;
   /** R2 预签名用：S3 API 凭证（secret） */
   R2_ACCESS_KEY_ID?: string;
   R2_SECRET_ACCESS_KEY?: string;
